@@ -61,6 +61,7 @@ public class MetamaskConnection : MonoBehaviour
     {
         _selectedAccountAddress = accountAddress;
         addressTxt.text = accountAddress;
+        SessionHandler.instance.setSessionAddress(accountAddress);
     }
     public void ChainChanged(string chainId)
     {
@@ -72,5 +73,9 @@ public class MetamaskConnection : MonoBehaviour
     public void DisplayError(string errorMessage)
     {
         LblError.text = errorMessage;
+    }
+    public void ContinueBtn()
+    {
+        
     }
 }
