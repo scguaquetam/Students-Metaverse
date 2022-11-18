@@ -11,12 +11,15 @@ using Nethereum.Unity.Contracts;
 using System.Numerics;
 using Nethereum.Hex.HexTypes;
 using TMPro;
+using UnityEngine.SceneManagement;
 public class MetamaskConnection : MonoBehaviour
 {
     private bool _isMetamaskInitialised = false;
     private string _selectedAccountAddress;
     public BigInteger ChainId = 444444444500;
-    public TMP_Text LblError, addressTxt, chainTxt;
+    [SerializeField] TMP_Text LblError, addressTxt, chainTxt;
+    [SerializeField] Button continueBtn;
+     
     public bool IsWebGL()
     {
 #if UNITY_WEBGL
@@ -33,6 +36,7 @@ public class MetamaskConnection : MonoBehaviour
             if (MetamaskInterop.IsMetamaskAvailable())
             {
                 MetamaskInterop.EnableEthereum(gameObject.name, nameof(EthereumEnabled), nameof(DisplayError));
+                continueBtn.interactable = true;
             }
             else
             {
@@ -76,6 +80,6 @@ public class MetamaskConnection : MonoBehaviour
     }
     public void ContinueBtn()
     {
-        
+        SceneManager.LoadScene("Planet1");
     }
 }
