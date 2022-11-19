@@ -12,5 +12,4 @@ public class AvatarInteraction : MonoBehaviour
             BNBInteraction.instance.ReadBalance();
         }
     }
-
 }

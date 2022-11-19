@@ -1216,7 +1216,7 @@ GameObject:
   - component: {fileID: 409955756}
   - component: {fileID: 409955755}
   m_Layer: 5
-  m_Name: Text (TMP) (1)
+  m_Name: balancetitle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2847,7 +2847,7 @@ GameObject:
   - component: {fileID: 1059050390}
   - component: {fileID: 1059050389}
   m_Layer: 5
-  m_Name: Text (TMP) (2)
+  m_Name: addresstitle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3136,6 +3136,7 @@ GameObject:
   - component: {fileID: 1133887809}
   - component: {fileID: 1133887808}
   - component: {fileID: 1133887807}
+  - component: {fileID: 1133887811}
   m_Layer: 5
   m_Name: ScreenCanvas
   m_TagString: Untagged
@@ -3225,6 +3226,20 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &1133887811
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1133887806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 335d0d70b24f85e4cb337d6a64da428b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  currentBalance: {fileID: 1402994255}
+  yourAddress: {fileID: 1336840461}
 --- !u!1 &1136410507
 GameObject:
   m_ObjectHideFlags: 0
@@ -3895,7 +3910,7 @@ GameObject:
   - component: {fileID: 1336840462}
   - component: {fileID: 1336840461}
   m_Layer: 5
-  m_Name: TokenBalance (1)
+  m_Name: address
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
