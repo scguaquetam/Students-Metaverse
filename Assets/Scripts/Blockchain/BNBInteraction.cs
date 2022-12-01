@@ -9,16 +9,17 @@ using System.Numerics;
 using Nethereum.Hex.HexTypes;
 using Nethereum.Unity.Metamask;
 using Nethereum.Util;
+
 public class BNBInteraction : MonoBehaviour
 {
     public static BNBInteraction instance;
     ///===>>> Token contract information
     string url = "https://rpc.ankr.com/bsc_testnet_chapel";
-    string account = "0x65EdA2B6E940ccd72dd07b2384DC76f18E90Dacb"; //contract owner
-    string privateKey = "d3212873f98d90f81fcef815f57d982317fe601f6fa0f2f18218ca449f22c292"; //contract owner key
+    string account = "0x65EdA2B6E940ccd72dd07b2384DC76f18E90Dacb"; //contract owner testing purposes
+    string privateKey = "d3212873f98d90f81fcef815f57d982317fe601f6fa0f2f18218ca449f22c292"; //contract owner key testing purposes
     string ContractAddress = "0x5A5E585F79915F7c6122999446644Da79Cf006b3"; //token contract
     string accountPlayer; //playeraddress
-    decimal tokenBalance;
+    decimal playerTokenBalance;
     ///===>>> NFT contract information
     string NFTContractAddress = "0x752905D58F7Ea5Ce26175920d1E0cfA02C19b13a"; //NFT contract
 
@@ -53,41 +54,7 @@ public class BNBInteraction : MonoBehaviour
         //accountPlayer = SessionHandler.instance.getSessionAddress();
 
         //testing
-        accountPlayer = "0x0F257dBb886d4f56BED0ff0Ae0ee229D8818f0Fc";
-    }
-    public decimal GetBalance() { return tokenBalance; }
-    public void ReadBalance()
-    {
-        StartCoroutine(Balance());
-    }
-    IEnumerator Balance(bool last = false)
-    {
-        var queryRequest = new QueryUnityRequest<BalanceOfFunction, BalanceOfFunctionOutput>(url, account);
-        yield return queryRequest.Query(new BalanceOfFunction() { Owner = accountPlayer }, ContractAddress);
-        //Getting the dto response already decoded
-        var dtoResult = queryRequest.Result;
-        // Debug.Log("balance is");
-        // Debug.Log(dtoResult.Balance);
-        TokenScreen.instance.WriteInfo(UnitConversion.Convert.FromWei(queryRequest.Result.Balance).ToString());
-        tokenBalance = UnitConversion.Convert.FromWei(queryRequest.Result.Balance);
-    }
-    IEnumerator Transfer()
-    {
-        StartCoroutine(Balance());
-        var transactionTransferRequest = new TransactionSignedUnityRequest(url, privateKey);
-        transactionTransferRequest.UseLegacyAsDefault = true;
-        var newAddress = accountPlayer;
-        var transactionMessage = new TransferFunction
-        {
-            FromAddress = account,
-            To = newAddress,
-            Value = (tokenBalance == 0) ? UnitConversion.Convert.ToWei(10) : UnitConversion.Convert.ToWei(tokenBalance) * 2,
-        };
-        yield return transactionTransferRequest.SignAndSendTransaction(transactionMessage, ContractAddress);
-        var transactionTransferHash = transactionTransferRequest.Result;
-        Debug.Log("Transfer txn hash:" + transactionTransferHash);
-        yield return new WaitForSeconds(3f);
-        StartCoroutine(Balance(true));
+        accountPlayer = "0x1f882709A1B1E00b449Afc215B3F13213E7Dc8eD";
     }
     public bool IsWebGL()
     {
@@ -97,6 +64,57 @@ public class BNBInteraction : MonoBehaviour
       return false;
 #endif
     }
+    public decimal GetBalance() { return playerTokenBalance; }
+    public void ReadBalance()
+    {
+        StartCoroutine(Balance());
+    }
+    IEnumerator Balance()
+    {
+        var queryRequest = new QueryUnityRequest<BalanceOfFunction, BalanceOfFunctionOutput>(url, account);
+        yield return queryRequest.Query(new BalanceOfFunction() { Owner = accountPlayer }, ContractAddress);
+        //Getting the dto response already decoded
+        var dtoResult = queryRequest.Result;
+        TokenScreen.instance.WriteInfo(UnitConversion.Convert.FromWei(queryRequest.Result.Balance).ToString());
+        playerTokenBalance = UnitConversion.Convert.FromWei(queryRequest.Result.Balance);
+    }
+    public void GetTokens() { StartCoroutine(Transfer()); }
+    IEnumerator Transfer()
+    {
+        TokenScreen.instance.WriteInfo("transfering");
+        //read balance
+        var queryRequest = new QueryUnityRequest<BalanceOfFunction, BalanceOfFunctionOutput>(url, account);
+        yield return queryRequest.Query(new BalanceOfFunction() { Owner = accountPlayer }, ContractAddress);
+        //Getting the dto response already decoded
+        var dtoResult = queryRequest.Result;
+        playerTokenBalance = UnitConversion.Convert.FromWei(queryRequest.Result.Balance);
+        //transfer tokens
+        var transactionTransferRequest = new TransactionSignedUnityRequest(url, privateKey, 97);
+        transactionTransferRequest.UseLegacyAsDefault = true;
+        Debug.Log(playerTokenBalance);
+        Debug.Log("uinit to transfer");
+        Debug.Log(UnitConversion.Convert.ToWei(10));
+        var transactionMessage = new TransferFunction
+        {
+            FromAddress = account,
+            To = accountPlayer,
+            Value = (playerTokenBalance == 0) ? UnitConversion.Convert.ToWei(10) : UnitConversion.Convert.ToWei(playerTokenBalance * 5),
+        };
+        yield return transactionTransferRequest.SignAndSendTransaction(transactionMessage, ContractAddress);
+        if (transactionTransferRequest.Exception != null)
+        {
+            Debug.Log("Error transfering: " + transactionTransferRequest.Exception.Message);
+        }
+        else
+        {
+            var transactionTransferHash = transactionTransferRequest.Result;
+            Debug.Log("Transfer txn hash:" + transactionTransferHash);
+            yield return new WaitForSeconds(3f);
+            StartCoroutine(Balance());
+        }
+
+    }
+
     public void BuyLand(int _index)
     {
         StartCoroutine(SendToken());

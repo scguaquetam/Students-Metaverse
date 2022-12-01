@@ -1,11 +1,13 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Numerics;
 
 public class SessionHandler : MonoBehaviour
 {
     public static SessionHandler instance;
-    string sessionAddress, chainId;
+    string sessionAddress;
+    BigInteger chainId;
     private void Awake()
     {
         if (instance != null)
@@ -17,6 +19,6 @@ public class SessionHandler : MonoBehaviour
     }
     public string getSessionAddress() { return sessionAddress; }
     public void setSessionAddress(string _address) { sessionAddress = _address; }
-    public string getChainId() { return chainId; }
-    public void setChainId(string _chain) { chainId = _chain; }
+    public BigInteger getChainId() { return chainId; }
+    public void setChainId(BigInteger _chain) { chainId = _chain; }
 }

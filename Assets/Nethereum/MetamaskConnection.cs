@@ -66,11 +66,13 @@ public class MetamaskConnection : MonoBehaviour
         _selectedAccountAddress = accountAddress;
         addressTxt.text = accountAddress;
         SessionHandler.instance.setSessionAddress(accountAddress);
+        
     }
     public void ChainChanged(string chainId)
     {
         print(chainId);
         ChainId = new HexBigInteger(chainId).Value;
+        SessionHandler.instance.setChainId(ChainId);
         chainTxt.text = chainId;
         //InputChainId.text = ChainId.ToString();
     }

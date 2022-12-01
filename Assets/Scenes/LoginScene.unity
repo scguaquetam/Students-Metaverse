@@ -298,7 +298,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   LblError: {fileID: 1452421358}
   addressTxt: {fileID: 1466586545}
-  chainTxt: {fileID: 0}
+  chainTxt: {fileID: 1536242687}
   continueBtn: {fileID: 1103518692}
 --- !u!4 &201803442
 Transform:

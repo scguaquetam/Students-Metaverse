@@ -14,7 +14,7 @@ public class TokenScreen : MonoBehaviour
     private void Awake()
     {
         instance = this;
-        yourAddress.text = SessionHandler.instance.getSessionAddress();
+        yourAddress.text = SessionHandler.instance?.getSessionAddress();
     }
     public void WriteInfo(string _balance)
     {
