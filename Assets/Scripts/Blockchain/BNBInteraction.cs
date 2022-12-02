@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UIElements;
 using Nethereum.ABI.FunctionEncoding.Attributes;
 using Nethereum.ABI.Model;
 using Nethereum.Contracts;
@@ -9,6 +10,10 @@ using System.Numerics;
 using Nethereum.Hex.HexTypes;
 using Nethereum.Unity.Metamask;
 using Nethereum.Util;
+using Nethereum.Unity.Contracts.Standards.ERC721;
+using Nethereum.Contracts.Standards.ERC721;
+using Nethereum.Unity.Utils.Drawing;
+using Nethereum.Unity.Contracts;
 
 public class BNBInteraction : MonoBehaviour
 {
@@ -21,7 +26,9 @@ public class BNBInteraction : MonoBehaviour
     string accountPlayer; //playeraddress
     decimal playerTokenBalance;
     ///===>>> NFT contract information
-    string NFTContractAddress = "0x752905D58F7Ea5Ce26175920d1E0cfA02C19b13a"; //NFT contract
+    string NFTContractAddress = "0x92caF4F46e1F661A94cc515feE80a7Dd269d2427"; //NFT contract
+    int userNftsCount;
+    public SpriteRenderer stageInWorld;
 
     [Function("balanceOf", "uint256")]
     public class BalanceOfFunction : FunctionMessage
@@ -43,18 +50,40 @@ public class BNBInteraction : MonoBehaviour
         [Parameter("uint256", "_value", 2)]
         public BigInteger Value { get; set; }
     }
-
     public partial class TransferFunction : TransferFunctionBase { }
+    public partial class MintFunction : MintFunctionBase { }
+    [Function("mint")]
+    public class MintFunctionBase : FunctionMessage
+    {
+        [Parameter("address", "to", 1)]
+        public virtual string To { get; set; }
+    }
+    public partial class SafeMint : SafeMintFunctionBase { }
+    [Function("safeMint")]
+    public class SafeMintFunctionBase : FunctionMessage
+    {
+        [Parameter("address", "to", 1)]
+        public virtual string To { get; set; }
+        [Parameter("string", "uri", 2)]
+        public virtual string Uri { get; set; }
+    }
+    //////////////////////////////////////////////////////////////////////////////////////////////start functions ====>
     private void Awake()
     {
         instance = this;
+        Debug.Log(accountPlayer);
+        Debug.Log(SessionHandler.instance.getSessionAddress().ToString());
+        Debug.Log(SessionHandler.instance.getSessionAddress());
+        string address = SessionHandler.instance.getSessionAddress();
+        Debug.Log(address);
+        accountPlayer = address;
+        Debug.Log(accountPlayer);
     }
     private void Start()
     {
-        //accountPlayer = SessionHandler.instance.getSessionAddress();
-
-        //testing
-        accountPlayer = "0x1f882709A1B1E00b449Afc215B3F13213E7Dc8eD";
+        //ReadNftStatus();
+        // //testing
+        // accountPlayer = "0x0F257dBb886d4f56BED0ff0Ae0ee229D8818f0Fc";
     }
     public bool IsWebGL()
     {
@@ -71,6 +100,7 @@ public class BNBInteraction : MonoBehaviour
     }
     IEnumerator Balance()
     {
+        Debug.Log(accountPlayer);
         var queryRequest = new QueryUnityRequest<BalanceOfFunction, BalanceOfFunctionOutput>(url, account);
         yield return queryRequest.Query(new BalanceOfFunction() { Owner = accountPlayer }, ContractAddress);
         //Getting the dto response already decoded
@@ -82,12 +112,14 @@ public class BNBInteraction : MonoBehaviour
     IEnumerator Transfer()
     {
         TokenScreen.instance.WriteInfo("transfering");
+
         //read balance
         var queryRequest = new QueryUnityRequest<BalanceOfFunction, BalanceOfFunctionOutput>(url, account);
         yield return queryRequest.Query(new BalanceOfFunction() { Owner = accountPlayer }, ContractAddress);
         //Getting the dto response already decoded
         var dtoResult = queryRequest.Result;
         playerTokenBalance = UnitConversion.Convert.FromWei(queryRequest.Result.Balance);
+
         //transfer tokens
         var transactionTransferRequest = new TransactionSignedUnityRequest(url, privateKey, 97);
         transactionTransferRequest.UseLegacyAsDefault = true;
@@ -114,24 +146,29 @@ public class BNBInteraction : MonoBehaviour
         }
 
     }
-
-    public void BuyLand(int _index)
-    {
-        StartCoroutine(SendToken());
-    }
-    public IEnumerator SendToken()
+    public IEnumerator PayWithZToken(BigInteger _value)
     {
         var transferRequest = new MetamaskTransactionUnityRequest(accountPlayer, GetUnityRpcRequestClientFactory());
         var transactionMessage = new TransferFunction
         {
             FromAddress = accountPlayer,
             To = account,
-            Value = 100000,
+            Value = _value,
         };
         yield return transferRequest.SignAndSendTransaction(transactionMessage, ContractAddress);
-        var transactionTransferHash = transferRequest.Result;
-        Debug.Log("Transfer txn hash:" + transactionTransferHash);
-        TokenScreen.instance.WriteTx(transactionTransferHash);
+        if(transferRequest.Exception != null)
+        {
+            PurchaseScreen.instance.loadingPanel.SetActive(false);
+            PurchaseScreen.instance.ShowError(transferRequest.Exception.Message);
+            yield break;
+        }
+        if (transferRequest.Result != null)
+        {
+            InteractionManager.instance.HideDoors();
+            PurchaseScreen.instance.loadingPanel.SetActive(false);
+            var transactionTransferHash = transferRequest.Result;
+            PurchaseScreen.instance.ShowAnswer("Payment correct, hash: " + transactionTransferHash);
+        }
     }
     public IEnumerator SignMessage()
     {
@@ -149,9 +186,11 @@ public class BNBInteraction : MonoBehaviour
     }
     public IUnityRpcRequestClientFactory GetUnityRpcRequestClientFactory()
     {
+        print("1111");
 #if UNITY_WEBGL
         if (IsWebGL())
         {
+            print("2222");
             if (MetamaskInterop.IsMetamaskAvailable())
             {
                 return new MetamaskRequestRpcClientFactory(accountPlayer, null, 60000);
@@ -162,10 +201,126 @@ public class BNBInteraction : MonoBehaviour
                 return null;
             }
         }
+#endif
         else
         {
-            return null;
+            print("3333");
+            return new UnityWebRequestRpcClientFactory(url);
         }
-#endif
+
+
+        // /testing
+        // return new UnityWebRequestRpcClientFactory(url);
     }
+
+    #region NFT
+    public void ReadNftStatus()
+    {
+        StartCoroutine(GetNFTsMetadata());
+    }
+    public IEnumerator GetNFTsMetadata()
+    {
+        var nftsOfUser = new NFTsOfUserUnityRequest(accountPlayer, GetUnityRpcRequestClientFactory());
+        yield return nftsOfUser.GetAllMetadataUrls(NFTContractAddress, accountPlayer);
+        if (nftsOfUser.Exception != null)
+        {
+            PurchaseScreen.instance.ShowError(nftsOfUser.Exception.Message);
+            yield break;
+        }
+        if (nftsOfUser.Result != null)
+        {
+            Debug.Log("22");
+            Debug.Log(nftsOfUser.Result.Count);
+            userNftsCount = nftsOfUser.Result.Count;
+            Debug.Log("221");
+            if (nftsOfUser.Result.Count <= 0)
+            {
+                Debug.Log("no NFT");
+                PurchaseScreen.instance.LoadInfoStage(0, true);
+                Debug.Log("no NFT 1");
+                stageInWorld.sprite = PurchaseScreen.instance.GetSprite(0);
+                Debug.Log("no NFT 2");
+                PurchaseScreen.instance.loadingPanel.SetActive(false);
+            }
+            else
+            {
+                Debug.Log("more than 1");
+                var metadataUnityRequest = new NftMetadataUnityRequest<NftMetadata>();
+                Debug.Log("b1");
+                yield return metadataUnityRequest.GetAllMetadata(nftsOfUser.Result);
+                Debug.Log("b2");
+                Debug.Log(metadataUnityRequest);
+                PurchaseScreen.instance.ShowAnswer(metadataUnityRequest.ToString());
+                if (metadataUnityRequest.Exception != null)
+                {
+                    PurchaseScreen.instance.ShowError(metadataUnityRequest.Exception.Message);
+                    yield break;
+                }
+                Debug.Log("b3");
+                if (metadataUnityRequest.Result != null)
+                {
+                    Debug.Log("b4");
+                    var image = new Image();
+                    //_lstViewNFTs.hierarchy.Add(image);
+                    Debug.LogWarning(metadataUnityRequest.Result[0].Image);
+                    Debug.LogWarning(metadataUnityRequest.Result[0].Name);
+                    Debug.LogWarning(metadataUnityRequest.Result[0].Description);
+                    Debug.LogWarning(metadataUnityRequest.Result[0].ExternalUrl);
+                    // StartCoroutine(new ImageDownloaderTextureAssigner().DownloadAndSetImageTexture(metadataUnityRequest.Result[0].Image, image));
+                    // Debug.Log("b5");
+                    // PurchaseScreen.instance.SetNFTImage(image.sprite);
+                    // Debug.Log("b6");
+                    PurchaseScreen.instance.loadingPanel.SetActive(false);
+                }
+            }
+        }
+    }
+    public void OnPurchaseButton(int _index, string _price, bool _hasNoNFT)
+    {
+        if(_index == 0)
+        {
+            if (_hasNoNFT) // if does not have NFT purchase stage 0
+            {
+                //StartCoroutine(MintNFT());
+                BigInteger priceInToken = int.Parse(_price);
+                StartCoroutine(PayWithZToken(priceInToken));
+            }
+            else
+            {
+
+            }
+        }
+    }
+    public IEnumerator MintNFT()
+    {
+        var contractTransactionUnityRequest = GetContractTransactionUnityRequest();
+        Debug.Log("3");
+        if (contractTransactionUnityRequest != null)
+        {
+            Debug.Log("4");
+            Debug.Log(accountPlayer);
+            var mintFunction = new MintFunction() { To = accountPlayer };
+            Debug.Log("4 1");
+            yield return contractTransactionUnityRequest.SignAndSendTransaction<MintFunction>(mintFunction, NFTContractAddress);
+            Debug.Log("5");
+            if (contractTransactionUnityRequest.Exception == null)
+            {
+                Debug.Log("6");
+                PurchaseScreen.instance.ShowAnswer(contractTransactionUnityRequest.Result);
+                StartCoroutine(GetNFTsMetadata());
+            }
+            else
+            {
+                Debug.Log("7");
+                PurchaseScreen.instance.ShowError(contractTransactionUnityRequest.Exception.Message);
+            }
+        }
+    }
+    public IContractTransactionUnityRequest GetContractTransactionUnityRequest()
+    {
+        var transactionTransferRequest = new TransactionSignedUnityRequest(url, privateKey, 97);
+        transactionTransferRequest.UseLegacyAsDefault = true;
+        return transactionTransferRequest;
+    }
+    #endregion
 }

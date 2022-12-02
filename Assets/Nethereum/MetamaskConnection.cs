@@ -63,6 +63,8 @@ public class MetamaskConnection : MonoBehaviour
     }
     public void NewAccountSelected(string accountAddress)
     {
+        Debug.Log("aa");
+        Debug.Log(accountAddress);
         _selectedAccountAddress = accountAddress;
         addressTxt.text = accountAddress;
         SessionHandler.instance.setSessionAddress(accountAddress);

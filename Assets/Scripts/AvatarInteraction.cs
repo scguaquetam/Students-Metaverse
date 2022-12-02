@@ -21,8 +21,7 @@ public class AvatarInteraction : MonoBehaviour
             if(!buyLandPanel.activeSelf)
             {
                 buyLandPanel.SetActive(true);
-                TokenScreen.instance.OnLandPanel();
-                BNBInteraction.instance.BuyLand(0);
+                BNBInteraction.instance.ReadNftStatus();
             }
         }
     }
